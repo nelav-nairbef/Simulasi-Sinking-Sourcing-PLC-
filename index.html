@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulasi Sinking Sourcing PLC</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1b1f24;--card:#fff;--mut:#5d6773;--bd:#d9dde3;--red:#d6372c;--blue:#2563eb;--grn:#16a34a;--amb:#d97706;--ac:#0f766e;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1318;--fg:#e8ebef;--card:#181e26;--mut:#9aa5b1;--bd:#2c3540;--red:#f0675d;--blue:#6ea0ff;--grn:#4ade80;--amb:#fbbf24;--ac:#2dd4bf;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1318;--fg:#e8ebef;--card:#181e26;--mut:#9aa5b1;--bd:#2c3540;--red:#f0675d;--blue:#6ea0ff;--grn:#4ade80;--amb:#fbbf24;--ac:#2dd4bf;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px}
+main{max-width:760px;margin:auto}
+h1{font-size:1.35rem;margin:.2em 0}h2{font-size:1.1rem;margin:1.2em 0 .4em}
+.sub{color:var(--mut);margin:0 0 14px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}
+.tabs button,.seg button{border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:8px 12px;border-radius:10px;font:inherit;font-size:.92rem;cursor:pointer;white-space:nowrap}
+.tabs button.on,.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:12px 0}
+.lbl{font-size:.85rem;color:var(--mut);margin-top:10px;font-weight:600}
+.sec{display:none}.sec.on{display:block}
+svg{width:100%;height:auto;display:block}
+.sv{fill:var(--card);stroke:var(--fg);stroke-width:2}
+svg text{fill:var(--fg);font-family:inherit}
+.flow{animation:f .7s linear infinite}@keyframes f{to{stroke-dashoffset:-20}}
+.msg{padding:10px 12px;border-radius:10px;margin-top:10px;border-left:4px solid var(--grn);background:rgba(22,163,74,.12)}
+.msg.bad{border-color:var(--red);background:rgba(214,55,44,.12)}.msg.warn{border-color:var(--amb);background:rgba(217,119,6,.14)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border:1px solid var(--bd);padding:8px;text-align:center}
+td.hl{outline:3px solid var(--amb);outline-offset:-3px}
+input[type=range]{width:100%}input[type=number]{width:76px;font:inherit;padding:4px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
+pre{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;overflow-x:auto;font-size:.82rem;line-height:1.45}
+.big{font-size:1.5rem;font-weight:700}.row{display:flex;gap:10px;flex-wrap:wrap}.row>div{flex:1;min-width:120px}
+.bar{height:16px;background:var(--bd);border-radius:8px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--ac)}
+.tips li{margin:8px 0}
+</style></head><body><main>
+<h1>⚡ Simulasi Sinking, Sourcing &amp; Sinyal PLC</h1>
+<p class="sub">Klik, geser, dan lihat sendiri kenapa wiring bisa bekerja atau tidak.</p>
+<div class="tabs" id="tabs"></div>
+
+<section class="sec" id="s0">
+<div class="card">
+<div class="lbl">Tipe sensor</div><div class="seg" id="g_sen"></div>
+<div class="lbl">Tipe modul DI</div><div class="seg" id="g_mod"></div>
+<div class="lbl">Objek di depan sensor</div><div class="seg" id="g_obj"></div>
+<div id="svg1"></div><div id="m1"></div>
+</div>
+<div class="card"><b>Tabel kecocokan</b>
+<table id="tb"><tr><th></th><th>Modul SINKING</th><th>Modul SOURCING</th></tr>
+<tr><th>Sensor PNP</th><td>✅ Cocok</td><td>❌</td></tr>
+<tr><th>Sensor NPN</th><td>❌</td><td>✅ Cocok</td></tr></table>
+<p>🚰 <b>Analogi:</b> SOURCE = keran yang mengeluarkan air (arus keluar dari +24V). SINK = lubang pembuangan yang menerima air (arus masuk ke 0V). Agar air mengalir, satu pihak harus keran dan pihak lain harus pembuangan. Dua keran bertemu atau dua pembuangan bertemu = tidak ada aliran.</p>
+<p>Istilah sinking/sourcing pada modul dilihat dari <b>terminal input</b>: input sinking = arus masuk ke input, jadi dipasangkan dengan sensor PNP. Cek datasheet modulnya, karena beberapa vendor menamai terbalik.</p></div>
+</section>
+
+<section class="sec" id="s1">
+<div class="card">
+<div class="lbl">Jenis sensor</div><div class="seg" id="g_wt"></div>
+<div class="lbl">Objek</div><div class="seg" id="g_obj2"></div>
+<div id="w2c">
+<div class="lbl">Arus bocor sensor 2-kawat: <b id="lk"></b> mA</div>
+<input type="range" min="0" max="3" step="0.1" id="r_leak">
+<div class="seg" id="g_bl"></div></div>
+<pre id="diag"></pre>
+<div class="row"><div><div class="lbl">Arus ke input DI</div><div class="big" id="iin"></div></div><div><div class="lbl">PLC membaca</div><div class="big" id="dst"></div></div></div>
+<div id="m2"></div></div>
+<div class="card">
+<b>Ringkas</b>
+<ul class="tips"><li><b>2-kawat</b>: sensor seri dengan beban, tanpa kabel 0V sendiri. Hemat kabel, tapi ada arus bocor (±0,5-2 mA) dan drop tegangan saat ON (±3-5V).</li>
+<li><b>3-kawat</b>: +V, 0V, dan OUT. Paling umum (PNP/NPN) dan paling stabil.</li>
+<li><b>4-kawat</b>: +V, 0V, dan dua output (NO dan NC) sekaligus.</li></ul>
+<p>🚿 <b>Analogi:</b> arus bocor itu seperti keran yang menetes. Ember kecil (input DI) bisa terisi pelan-pelan sampai dianggap penuh. Resistor bleeder = lubang kecil di dasar ember.</p></div>
+</section>
+
+<section class="sec" id="s2">
+<div class="card">
+<div class="lbl">Jenis sinyal analog</div><div class="seg" id="g_rng"></div>
+<div class="lbl">Resolusi / format angka modul</div><div class="seg" id="g_res"></div>
+<div class="lbl">Rentang proses (satuan teknik): dari <input type="number" id="lo"> sampai <input type="number" id="hi"> (misal bar, °C, liter)</div>
+<div class="lbl">Nilai proses: <b id="pv"></b></div>
+<input type="range" min="-20" max="120" step="0.5" id="r_p">
+<div class="seg" id="g_wb"></div>
+<div class="bar"><i id="bar"></i></div>
+<div class="row" style="margin-top:12px">
+<div><div class="lbl">Sinyal di kabel</div><div class="big" id="sg"></div></div>
+<div><div class="lbl">Nilai mentah PLC</div><div class="big" id="raw"></div></div></div>
+<div id="m3"></div><pre id="loop"></pre></div>
+<div class="card"><b>Rumus scaling</b><pre id="fm"></pre>
+<p>🌡️ <b>Analogi:</b> 4-20 mA seperti termometer yang skalanya mulai dari 4, bukan 0. Angka 0 mA bukan berarti suhu nol, tapi kabel putus. Itulah alasan 4 mA dipakai sebagai nol "hidup".</p></div>
+</section>
+
+<section class="sec" id="s3">
+<div class="card"><b>Digital Output (DO)</b>
+<div class="lbl">Tipe modul DO</div><div class="seg" id="g_dom"></div>
+<div class="lbl">Beban (lampu/relay) disambung ke</div><div class="seg" id="g_ld"></div>
+<div class="lbl">Bit output</div><div class="seg" id="g_bit"></div>
+<pre id="dpre"></pre><div class="big" id="lamp"></div><div id="m4"></div></div>
+<div class="card"><b>Analog Output (AO)</b>
+<div class="lbl">Tipe</div><div class="seg" id="g_ao"></div>
+<div class="lbl">Setpoint output: <b id="aov"></b></div><input type="range" min="0" max="100" id="r_aop">
+<div class="lbl">Tahanan beban: <b id="rv"></b> Ω</div><input type="range" min="100" max="1500" step="10" id="r_r">
+<div class="row"><div><div class="lbl">Arus/tegangan sebenarnya</div><div class="big" id="aoa"></div></div></div>
+<div id="m5"></div></div>
+</section>
+
+<section class="sec" id="s4"><div class="card"><ul class="tips">
+<li>🔌 <b>Jangan campur</b> sensor PNP dan NPN pada satu common modul DI yang sama.</li>
+<li>🌏 PNP lebih umum di Eropa dan Amerika (Siemens, Allen-Bradley), NPN lebih banyak di Jepang dan Asia. Cek tipe sebelum beli.</li>
+<li>⚠️ Tegangan sensor dan common PLC harus 0V yang sama (satu referensi), kalau tidak nilai DI mengambang.</li>
+<li>📏 Standar DI 24VDC (IEC 61131-2 tipe 1): ON sekitar 15-30V, OFF sekitar -3 sampai 5V.</li>
+<li>🧵 Sinyal analog: pakai kabel shielded twisted pair, ground shield di satu ujung saja.</li>
+<li>🔁 4-20 mA <b>2-kawat</b> (loop powered): transmitter ditenagai loop, modul AI harus menyediakan 24V atau pakai supply luar. <b>4-kawat</b>: supply transmitter terpisah, sinyal aktif.</li>
+<li>🛑 Wire break: &lt;3,6 mA dianggap kabel putus/underrange. Standar NAMUR NE43: normal 3,8-20,5 mA.</li>
+<li>🎚️ Rentang lain yang umum: 0-20 mA, 0-10V, 1-5V, ±10V, 0-5V. Sinyal suhu langsung: Pt100/RTD dan thermocouple perlu modul AI khusus.</li>
+<li>🧮 Siemens: 0-27648 (normal), overrange sampai 32511. Allen-Bradley dan modul lain: skala berbeda, cek manual modul dan scaling di konfigurasi.</li>
+<li>🛡️ DO transistor kecil (±0,5 A). Beban induktif (relay, solenoid) butuh dioda flyback, atau gunakan relay interposing.</li>
+<li>🔍 Troubleshooting 4-20 mA: ukur mA seri dengan multimeter. Ukur tegangan di shunt (250 Ω: 1-5V) untuk cek loop tanpa memutus kabel.</li></ul></div></section>
+
+<script>
+const $=i=>document.getElementById(i);
+const S={sen:'PNP',mod:'sink',obj:'1',wt:'2',leak:1.5,bl:'0',rng:'4-20',res:'27648',lo:0,hi:10,p:50,wb:'0',dom:'src',ld:'0V',bit:'1',ao:'I',aop:50,r:250};
+function seg(id,o,k,f){const e=$(id);e.dataset.k=k;e.innerHTML=o.map(([v,t])=>`<button data-v="${v}">${t}</button>`).join('');e.onclick=ev=>{const b=ev.target.closest('button');if(!b)return;S[k]=b.dataset.v;mark();R()}}
+function mark(){document.querySelectorAll('.seg').forEach(e=>e.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(S[e.dataset.k])==b.dataset.v)))}
+function sld(id,k,f){$(id).oninput=e=>{S[k]=+e.target.value;R()}}
+const OBJ=[['1','🟢 Ada objek'],['0','⚪ Tidak ada']];
+seg('g_sen',[['PNP','PNP (source)'],['NPN','NPN (sink)']],'sen');
+seg('g_mod',[['sink','Sinking'],['src','Sourcing']],'mod');
+seg('g_obj',OBJ,'obj');seg('g_obj2',OBJ,'obj');
+seg('g_wt',[['2','2-kawat'],['3','3-kawat'],['4','4-kawat']],'wt');
+seg('g_bl',[['0','Tanpa bleeder'],['1','Pakai resistor bleeder']],'bl');
+const RG={'4-20':['mA',4,20,'I'],'0-20':['mA',0,20,'I'],'0-10':['V',0,10,'V'],'1-5':['V',1,5,'V'],'0-5':['V',0,5,'V'],'±10':['V',-10,10,'V']};
+seg('g_rng',Object.keys(RG).map(k=>[k,k+(RG[k][0]=='mA'?' mA':' V')]),'rng');
+seg('g_res',[['27648','Siemens 0-27648'],['4095','12-bit 0-4095'],['65535','16-bit 0-65535']],'res');
+seg('g_wb',[['0','Kabel normal'],['1','✂️ Kabel putus']],'wb');
+seg('g_dom',[['src','Sourcing (PNP, +24V)'],['snk','Sinking (NPN, 0V)']],'dom');
+seg('g_ld',[['0V','Ke 0V'],['24V','Ke +24V']],'ld');
+seg('g_bit',[['1','Bit = 1'],['0','Bit = 0']],'bit');
+seg('g_ao',[['I','4-20 mA'],['V','0-10 V']],'ao');
+sld('r_leak','leak');sld('r_p','p');sld('r_aop','aop');sld('r_r','r');
+$('lo').onchange=e=>{S.lo=+e.target.value;R()};$('hi').onchange=e=>{S.hi=+e.target.value;R()};$('lo').value=0;$('hi').value=10;
+const T=['1. DI: Sink/Source','2. Sensor 2/3/4 kawat','3. Analog (AI)','4. Output DO/AO','5. Tips'];
+$('tabs').innerHTML=T.map((t,i)=>`<button data-i="${i}">${t}</button>`).join('');
+let tab=0;$('tabs').onclick=e=>{const b=e.target.closest('button');if(b){tab=+b.dataset.i;R()}};
+const msg=(id,c,t)=>$(id).innerHTML=`<div class="msg ${c}">${t}</div>`;
+const rail=(y,c,t)=>`<line x1="10" x2="640" y1="${y}" y2="${y}" stroke="${c}" stroke-width="3"/><text x="14" y="${y<100?y-8:y+17}" fill="${c}" font-size="14" font-weight="700">${t}</text>`;
+function r1(){
+const ok=(S.sen=='PNP'&&S.mod=='sink')||(S.sen=='NPN'&&S.mod=='src'),on=ok&&S.obj=='1',sk=S.mod=='sink';
+const P=S.sen=='PNP'?'120,30 120,130 200,130 310,130 310,110 420,110 500,110 500,150 580,150 620,150 620,250':'620,30 620,150 580,150 500,150 500,110 420,110 310,110 310,130 200,130 120,130 120,250';
+const ce=sk?250:30;
+$('svg1').innerHTML=`<svg viewBox="0 0 660 280">${rail(30,'var(--red)','+24V')}${rail(250,'var(--blue)','0V')}
+<g stroke="var(--fg)" stroke-width="2" fill="none"><line x1="120" y1="30" x2="120" y2="70"/><line x1="120" y1="190" x2="120" y2="250"/><polyline points="200,130 310,130 310,110 420,110"/><polyline points="580,150 620,150 620,${ce}"/></g>
+<rect class="sv" x="40" y="70" width="160" height="120" rx="10"/><rect class="sv" x="420" y="70" width="160" height="120" rx="10"/>
+<text x="120" y="95" text-anchor="middle" font-size="14" font-weight="700">Sensor ${S.sen}</text><text x="120" y="160" text-anchor="middle" font-size="12">${S.obj=='1'?'objek terdeteksi':'tidak ada objek'}</text>
+<circle cx="60" cy="90" r="7" fill="${S.obj=='1'?'var(--amb)':'var(--bd)'}"/>
+<text x="500" y="95" text-anchor="middle" font-size="14" font-weight="700">DI ${sk?'SINKING':'SOURCING'}</text>
+<text x="436" y="114" font-size="12">DI0</text><text x="540" y="154" font-size="12">COM</text>
+<circle cx="560" cy="90" r="9" fill="${on?'var(--grn)':'var(--bd)'}"/><text x="500" y="178" text-anchor="middle" font-size="13">bit = ${on?1:0}</text>
+${on?`<polyline class="flow" points="${P}" fill="none" stroke="var(--amb)" stroke-width="5" stroke-dasharray="10 10"/>`:''}
+${!ok&&S.obj=='1'?'<text x="330" y="205" text-anchor="middle" font-size="22" fill="var(--red)">✖ arus tidak mengalir</text>':''}</svg>`;
+[...$('tb').rows].forEach((r,i)=>[...r.cells].forEach((c,j)=>c.classList.toggle('hl',i>0&&j>0&&((i==1&&S.sen=='PNP')||(i==2&&S.sen=='NPN'))&&((j==1&&sk)||(j==2&&!sk)))));
+if(ok)msg('m1','',S.sen=='PNP'?'✅ <b>PNP + Sinking.</b> Sensor mengeluarkan +24V ke kabel sinyal, arus masuk ke DI lalu keluar lewat COM ke 0V. '+(on?'Arus mengalir, bit = 1.':'Tanpa objek transistor sensor terbuka, bit = 0.'):'✅ <b>NPN + Sourcing.</b> COM modul terhubung ke +24V, arus keluar dari DI menuju sensor, lalu sensor menyambungkannya ke 0V. '+(on?'Arus mengalir, bit = 1.':'Tanpa objek transistor sensor terbuka, bit = 0.'));
+else msg('m1','bad',S.sen=='PNP'?'❌ <b>PNP + Sourcing.</b> Sensor dan modul sama-sama menyuplai +24V, tidak ada jalur ke 0V. Input tidak pernah aktif.':'❌ <b>NPN + Sinking.</b> Sensor dan modul sama-sama terhubung ke 0V, tidak ada sumber tegangan. Input tidak pernah aktif.');}
+function r2(){
+const w=S.wt,on=S.obj=='1';let i,leak=+S.leak;
+const eff=S.bl=='1'?leak*(2.2/(2.2+4.7)):leak;
+$('lk').textContent=S.leak;$('w2c').style.display=w=='2'?'block':'none';
+i=on?6:(w=='2'?eff:0.1);
+const st=i>=2?'1 (ON)':i<=1.5?'0 (OFF)':'? tidak pasti';
+$('iin').textContent=i.toFixed(1)+' mA';$('dst').textContent=st;
+$('diag').textContent={'2':`+24V ──[ SENSOR 2-kawat ]──┬──► DI (input)\n                          └─ bleeder ${S.bl=='1'?'2,2 kΩ ke 0V ✔':'(tidak ada)'}\n                  COM ───────────► 0V\nSensor ditenagai lewat jalur sinyal sendiri.`,'3':`+24V ──► Sensor (+V)\n0V   ──► Sensor (0V)\n         Sensor (OUT) ──► DI\n         COM ──► 0V\nSensor punya supply sendiri, output bersih.`,'4':`+24V ──► Sensor (+V)\n0V   ──► Sensor (0V)\n         OUT1 (NO) ──► DI0\n         OUT2 (NC) ──► DI1\nDua output berlawanan, cocok untuk cek sensor.`}[w];
+const bad=w=='2'&&!on&&i>1.5;
+if(w=='2'&&!on&&i>=2)msg('m2','bad','❌ Arus bocor ±'+i.toFixed(1)+' mA melewati ambang ON. PLC salah baca 1 padahal tidak ada objek. Solusi: pasang resistor bleeder paralel input, atau ganti sensor 3-kawat.');
+else if(bad)msg('m2','warn','⚠️ Arus bocor masuk daerah tidak pasti (1,5-2 mA). Hasil bisa berubah-ubah, kurangi dengan bleeder.');
+else msg('m2','',on?'✅ Objek terdeteksi, arus ±6 mA, DI membaca 1.':'✅ Arus bocor kecil, DI membaca 0.');}
+function r3(){
+const [u,a,b,ty]=RG[S.rng],N=+S.res,lo=+S.lo,hi=+S.hi,p=S.p,uni=a>=0;
+const pv=lo+(hi-lo)*p/100;$('pv').textContent=pv.toFixed(2)+' ('+p+'%)';$('r_p').value=p;
+let sg=S.wb=='1'&&ty=='I'?0:a+(b-a)*p/100;
+if(!uni&&S.wb=='1')sg=0;
+if(ty=='I')sg=Math.max(0,Math.min(sg,23));else sg=Math.max(a>=0?0:-11,Math.min(sg,a>=0?b*1.15:11));
+const f=(sg-a)/(b-a);let raw=Math.round(f*N);if(!uni)raw=Math.round(((sg)/b)*N);
+const lim=uni?[-0.176,1.176]:[-1.176,1.176];const fr=uni?f:sg/b;
+let fl='';const ranger=ty=='I'&&a==4&&sg<3.6;
+$('sg').textContent=sg.toFixed(2)+' '+u;
+if(S.wb=='1'&&ty=='I'){$('raw').textContent='FAULT';msg('m3','bad','❌ Kabel putus: arus 0 mA. Pada 4-20 mA ini kelihatan jelas (di bawah 3,6 mA = wire break), jadi PLC tahu sinyal rusak.');if(a==0)msg('m3','warn','⚠️ Pada 0-20 mA, arus 0 mA sama dengan nilai 0%. Kabel putus tidak bisa dibedakan dari proses 0%.');}
+else if(S.wb=='1'){$('raw').textContent='0 (?)';msg('m3','warn','⚠️ Sinyal tegangan: kabel putus bisa terbaca 0V atau mengambang, sulit dibedakan dari nilai 0.');}
+else if(fr>lim[1]){$('raw').textContent='OVERFLOW';msg('m3','bad','❌ Di atas batas overrange modul. Nilai tidak valid.');}
+else if(fr<lim[0]){$('raw').textContent='UNDERFLOW';msg('m3','bad','❌ Di bawah batas underrange modul. Cek kabel atau transmitter.');}
+else if(ranger){$('raw').textContent='UNDERFLOW';msg('m3','warn','⚠️ Di bawah 3,6 mA: dianggap underrange/wire break.');}
+else{$('raw').textContent=raw;msg('m3','',fr>1?'⚠️ Overrange (sedikit di atas 100%) masih terbaca.':'✅ Sinyal normal.');}
+$('bar').style.width=Math.max(0,Math.min(100,fr*100))+'%';
+$('loop').textContent=ty=='I'?`24V ─► [ Transmitter ] ─► AI (shunt 250Ω) ─► 0V\nI = ${sg.toFixed(2)} mA  →  V di shunt = ${(sg*0.25).toFixed(2)} V  (4-20 mA = 1-5 V)`:`Transmitter (OUT+/OUT-) ─► AI (impedansi masuk ≥ 100 kΩ)\nV = ${sg.toFixed(2)} V`;
+$('fm').textContent=`Nilai proses = Lo + (Hi - Lo) × (sinyal - ${a}) / (${b} - ${a})\n           = ${lo} + ${hi-lo} × (${sg.toFixed(2)} - ${a}) / ${b-a}\n           = ${(lo+(hi-lo)*f).toFixed(2)}\n\nRaw = (sinyal - ${a}) / ${b-a} × ${N}`;
+}
+function r4(){
+const sr=S.dom=='src',ok=S.bit=='1'&&((sr&&S.ld=='0V')||(!sr&&S.ld=='24V'));
+$('dpre').textContent=sr?`+24V ──► [ DO sourcing ] ──► OUT ──► Beban ──► 0V\n(modul MENGELUARKAN arus ke beban)`:`+24V ──► Beban ──► OUT ──► [ DO sinking ] ──► 0V\n(modul MENERIMA arus dari beban)`;
+$('lamp').textContent=ok?'💡 Beban ON':'⚫ Beban OFF';
+const need=sr?'0V':'+24V';
+if(S.ld==(sr?'0V':'24V'))msg('m4','','✅ Wiring benar: beban ke '+need+' untuk modul '+(sr?'sourcing':'sinking')+'. '+(S.bit=='1'?'Bit 1, beban menyala.':'Bit 0, beban mati.'));
+else msg('m4','bad','❌ Wiring salah: modul '+(sr?'sourcing':'sinking')+' butuh beban ke '+need+'. Beban tidak pernah menyala.');
+const I=S.ao=='I',sp=S.aop,r=S.r;let v=I?4+16*sp/100:10*sp/100,act=v;
+$('aov').textContent=v.toFixed(2)+(I?' mA':' V');$('rv').textContent=r;
+let w='',c='';
+if(I){const vmax=11,im=vmax/r*1000;if(v>im){act=im;w='warn';c='⚠️ Beban terlalu besar (compliance ±11V). Arus tertahan di '+im.toFixed(1)+' mA, sinyal tidak sampai. Batas tipikal ±500 Ω.'}else c='✅ Arus diterima beban dengan baik.'}
+else{act=v;const ia=v/r*1000;if(r<1000){w='warn';c='⚠️ Beban '+r+' Ω terlalu ringan untuk output tegangan (tipikal min 1 kΩ). Arus '+ia.toFixed(1)+' mA bisa membuat tegangan drop atau modul overload.'}else c='✅ Beban cukup tinggi, tegangan stabil.'}
+$('aoa').textContent=act.toFixed(2)+(I?' mA':' V');msg('m5',w,c)}
+function R(){mark();document.querySelectorAll('.sec').forEach((s,i)=>s.classList.toggle('on',i==tab));[...$('tabs').children].forEach((b,i)=>b.classList.toggle('on',i==tab));
+$('r_leak').value=S.leak;$('r_aop').value=S.aop;$('r_r').value=S.r;r1();r2();r3();r4()}
+R();
+</script></main></body></html>
